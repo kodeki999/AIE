@@ -1,9 +1,17 @@
 import numpy as np
 
+
 class Layer_Dense:
-    def __init__(self, n_input, n_neurons):
+    def __init__(self, n_input, n_neurons,
+        weight_regularizer_l1=0, weight_regularizer_l2=0,
+        bias_regularizer_l1=0, bias_regularizer_l2=0):
         self.weights = 0.01 * np.random.randn(n_input, n_neurons)
         self.biases = np.zeros((1, n_neurons))
+
+        self.weight_regularizer_l1 = weight_regularizer_l1
+        self.weight_regularizer_l2 = weight_regularizer_l2
+        self.bias_regularizer_l1 = bias_regularizer_l1
+        self.bias_regularizer_l2 = bias_regularizer_l2
 
     def forward(self, inputs):
         self.inputs = inputs
@@ -12,6 +20,31 @@ class Layer_Dense:
     def backward(self, dvalues):
         self.dweights = np.dot(self.inputs.T, dvalues)
         self.dbiases = np.sum(dvalues, axis=0, keepdims=True)
+
+
+        if self.weight_regularizer_l1 > 0:
+            dL1 = np.ones_like(self.weights)
+            dL1[self.weights < 0] = -1
+            self.dweights += self.weight_regularizer_l1 * dL1
+        
+        # L2 on weights
+        if self.weight_regularizer_l2 > 0:
+            self.dweights += 2 * self.weight_regularizer_l2 * \
+            self.weights
+        
+        # L1 on biases
+        if self.bias_regularizer_l1 > 0:
+            dL1 = np.ones_like(self.biases)
+            dL1[self.biases < 0] = -1
+            self.dbiases += self.bias_regularizer_l1 * dL1
+        
+        # L2 on biases
+        if self.bias_regularizer_l2 > 0:
+            self.dbiases += 2 * self.bias_regularizer_l2 * \
+            self.biases
+        
+        
+        # Gradient on values
         self.dinputs = np.dot(dvalues, self.weights.T)
 
 
@@ -83,6 +116,42 @@ class Loss_CategoricalCrossentropy(Loss):
         self.dinputs = self.dinputs / samples
 
 
+    def regularization_loss(self, layer):
+        # 0 by default
+        regularization_loss = 0
+        # L1 regularization - weights
+        # calculate only when factor greater than 0
+
+
+        if layer.weight_regularizer_l1 > 0:
+            regularization_loss += layer.weight_regularizer_l1 * \
+            np.sum(np.abs(layer.weights))
+
+
+        # L2 regularization - weights
+        if layer.weight_regularizer_l2 > 0:
+            regularization_loss += layer.weight_regularizer_l2 * \
+            np.sum(layer.weights *
+            layer.weights)
+
+
+        # L1 regularization - biases
+        # calculate only when factor greater than 0
+        if layer.bias_regularizer_l1 > 0:
+            regularization_loss += layer.bias_regularizer_l1 * \
+            np.sum(np.abs(layer.biases))
+
+
+        # L2 regularization - biases
+        if layer.bias_regularizer_l2 > 0:
+            regularization_loss += layer.bias_regularizer_l2 * \
+            np.sum(layer.biases *
+            layer.biases)
+
+
+        return regularization_loss
+
+
 class Activation_Softmax_Loss_CategoricalCrossentropy():
 
     def __init__(self):
@@ -103,6 +172,41 @@ class Activation_Softmax_Loss_CategoricalCrossentropy():
         self.dinputs[range(samples), y_true] -= 1
         self.dinputs = self.dinputs/samples
 
+    def regularization_loss(self, layer):
+        # 0 by default
+        regularization_loss = 0
+        # L1 regularization - weights
+        # calculate only when factor greater than 0
+
+
+        if layer.weight_regularizer_l1 > 0:
+            regularization_loss += layer.weight_regularizer_l1 * \
+            np.sum(np.abs(layer.weights))
+
+
+        # L2 regularization - weights
+        if layer.weight_regularizer_l2 > 0:
+            regularization_loss += layer.weight_regularizer_l2 * \
+            np.sum(layer.weights *
+            layer.weights)
+
+
+        # L1 regularization - biases
+        # calculate only when factor greater than 0
+        if layer.bias_regularizer_l1 > 0:
+            regularization_loss += layer.bias_regularizer_l1 * \
+            np.sum(np.abs(layer.biases))
+
+
+        # L2 regularization - biases
+        if layer.bias_regularizer_l2 > 0:
+            regularization_loss += layer.bias_regularizer_l2 * \
+            np.sum(layer.biases *
+            layer.biases)
+
+
+        return regularization_loss
+
 
 class Optimizer_SGD:
     def __init__(self, learning_rate = 1.0, decay = 0.):
@@ -121,6 +225,7 @@ class Optimizer_SGD:
     def update_params(self, layer):
         layer.weights += -  self.current_learning_rate * layer.dweights
         layer.biases   += - self.current_learning_rate * layer.dbiases
+
 
 
 class Optimizer_SGD_mom(Optimizer_SGD):
@@ -273,3 +378,44 @@ def accuracy(output, ys):
         ys = np.argmax(ys, axis = 1)
 
     return np.mean(pred == ys)
+
+
+def split_dataset(x, y, n_chunks=3, perc_test=0.2):
+
+    size = len(x)
+    size_test = round(size * perc_test)
+
+    idx_testset = np.random.choice(
+        size,
+        size=size_test,
+        replace=False
+    )
+
+    x_test_set = x[idx_testset]
+    y_test_set = y[idx_testset]
+
+    x_sets = np.delete(x, idx_testset, axis=0)
+    y_sets = np.delete(y, idx_testset, axis=0)
+
+    samples_per_chunck = round((size - size_test)/n_chunks)
+    x_chunks = []
+    y_chunks = []
+
+    for i in range(n_chunks):
+        size_remain = len(x_sets)
+        samples_per_chunk = round(
+            size_remain / (n_chunks - i)
+        )
+        idx_chunk = np.random.choice(
+            size_remain,
+            size=samples_per_chunk,
+            replace=False
+        )
+        x_chunk_set = x_sets[idx_chunk]
+        y_chunk_set = y_sets[idx_chunk]
+        x_chunks.append(x_chunk_set)
+        y_chunks.append(y_chunk_set)
+        x_sets = np.delete(x_sets, idx_chunk, axis=0)
+        y_sets = np.delete(y_sets, idx_chunk, axis=0)
+
+    return x_chunks, y_chunks, x_test_set, y_test_set
