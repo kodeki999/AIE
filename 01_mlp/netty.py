@@ -412,7 +412,7 @@ def split_dataset(x, y, n_chunks=3, perc_test=0.2):
             replace=False
         )
         x_chunk_set = x_sets[idx_chunk]
-        y_chunk_set = y_sets[idx_chunk]
+        y_chunk_set = y_sets[idx_chunk] 
         x_chunks.append(x_chunk_set)
         y_chunks.append(y_chunk_set)
         x_sets = np.delete(x_sets, idx_chunk, axis=0)
