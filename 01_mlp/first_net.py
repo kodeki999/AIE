@@ -9,7 +9,7 @@ nnfs.init()
 
 
 def training(x, y, epochs, optimizer, relu, loss_activation,
-             loss_history, accuracy_history, **layers):
+             loss_history, accuracy_history, dropout, **layers):
 
     layer1 = layers["layer1"]
     layer2 = layers["layer2"]
@@ -18,9 +18,16 @@ def training(x, y, epochs, optimizer, relu, loss_activation,
 
         layer1.forward(x)
         relu.forward(layer1.output)
-        layer2.forward(relu.output)
+        dropout.forward(relu.output)
 
-        loss = loss_activation.forward(layer2.output, y)
+        layer2.forward(dropout.output)
+
+        # Calculate loss from output of activation2 so softmax activation
+        data_loss = loss_activation.forward(layer2.output, y)
+        # Calculate regularization penalty
+        regularization_loss = loss_activation.regularization_loss(layer1) + loss_activation.regularization_loss(layer2)
+        # Calculate overall loss
+        loss = data_loss + regularization_loss
 
         predictions = np.argmax(loss_activation.output, axis=1)
         accuracy = np.mean(predictions == y)
@@ -34,7 +41,8 @@ def training(x, y, epochs, optimizer, relu, loss_activation,
         loss_activation.backward(loss_activation.output, y)
         layer2.backward(loss_activation.dinputs)
         relu.backward(layer2.dinputs)
-        layer1.backward(relu.dinputs)
+        dropout.backward(relu.dinputs)
+        layer1.backward(dropout.dinputs)
 
         optimizer.pre_update_params()
         optimizer.update_params(layer1)
@@ -160,27 +168,38 @@ def plot_decision_boundary(x, y, layer1, relu, layer2):
     plt.show()
 
 
+
+
+
+
 def init_nn():
     x, y = spiral_data(samples=100, classes=3)
 
     n_input = x.shape[1]
     n_neurons = 512
 
-    layer1 = netty.Layer_Dense(n_input, n_neurons)
+    layer1 = netty.Layer_Dense(n_input, n_neurons, weight_regularizer_l2=0.01,
+                                                   bias_regularizer_l2  =0.01)
     relu = netty.Activation_ReLU()
+    dropout1 = netty.Layer_Dropout(0.1)
     layer2 = netty.Layer_Dense(n_neurons, 3)
 
+
     loss_activation = netty.Activation_Softmax_Loss_CategoricalCrossentropy()
-    return x, y, layer1, layer2, relu, loss_activation
+    return x, y, layer1, layer2, relu, loss_activation, dropout1
+
+
+
+
 
 # Inizializzazione rete Adam
-x_ada, y_ada, layer1_ada, layer2_ada, relu_ada, loss_activation_ada = init_nn()
+x_ada, y_ada, layer1_ada, layer2_ada, relu_ada, loss_activation_ada, dropout_ada = init_nn()
 
 # Inizializzazione rete RMSprop
-x_rsm, y_rsm, layer1_rsm, layer2_rsm, relu_rsm, loss_activation_rsm = init_nn()
+x_rsm, y_rsm, layer1_rsm, layer2_rsm, relu_rsm, loss_activation_rsm, dropout_rsm = init_nn()
 
-lr = 0.004
-d = 0.0001
+lr = 0.04
+d = 0.00001
 
 # Adam
 optimizer_ada = netty.Optimizer_AdamW(
@@ -204,14 +223,14 @@ loss_history_rmsprop = []
 accuracy_history_rmsprop = []
 
 
-epochs = 50000
+epochs = 5000
 
 
 # Training con Adam
 training(
     x_ada, y_ada, epochs,
     optimizer_ada, relu_ada, loss_activation_ada,
-    loss_history_ada, accuracy_history_ada,
+    loss_history_ada, accuracy_history_ada, dropout_ada,
     layer1=layer1_ada, layer2=layer2_ada
 )
 
@@ -220,7 +239,7 @@ training(
 training(
     x_rsm, y_rsm, epochs,
     optimizer_rmsprop, relu_rsm, loss_activation_rsm,
-    loss_history_rmsprop, accuracy_history_rmsprop,
+    loss_history_rmsprop, accuracy_history_rmsprop, dropout_rsm,
     layer1=layer1_rsm, layer2=layer2_rsm
 )
 
@@ -233,6 +252,3 @@ loss_acc_plot_vs(
     "adamW",
     "adam"
 )
-
-
-# plot_decision_boundary(x, y, layer1, relu, layer2)

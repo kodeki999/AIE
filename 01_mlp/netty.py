@@ -419,3 +419,21 @@ def split_dataset(x, y, n_chunks=3, perc_test=0.2):
         y_sets = np.delete(y_sets, idx_chunk, axis=0)
 
     return x_chunks, y_chunks, x_test_set, y_test_set
+
+
+class Layer_Dropout:
+
+    def __init__(self, rate):
+        
+        
+        self.rate = 1-rate
+
+    def forward(self, inputs):
+
+        self.inputs = inputs
+        self.binary_mask = np.random.binomial(1, self.rate, size=inputs.shape) / self.rate
+
+        self.output = inputs * self.binary_mask
+
+    def backward(self, dvalues):
+        self.dinputs = dvalues * self.binary_mask
