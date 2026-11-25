@@ -1,0 +1,26 @@
+Categoria	Metrica	Cosa misura
+Classificazione	Accuracy	Percentuale di predizioni corrette
+Classificazione	Precision	Affidabilità delle predizioni positive
+Classificazione	Recall	Capacità di individuare i positivi reali
+Classificazione	F1 Score	Equilibrio tra Precision e Recall
+Classificazione	ROC-AUC	Capacità discriminante del modello
+Classificazione	PR-AUC	Prestazioni Precision-Recall
+Regressione	MAE	Errore assoluto medio
+Regressione	RMSE	Errore quadratico medio, in radice
+Regressione	R²	Capacità esplicativa del modello
+Retrieval	Precision@K	Pertinenza dei primi K risultati
+Retrieval	Recall@K	Quota di risultati pertinenti recuperati nei primi K
+Retrieval	Hit Rate@K	Frequenza con cui si recupera almeno un risultato pertinente
+Retrieval	MRR	Posizione del primo risultato pertinente
+Retrieval	NDCG	Qualità dell'ordinamento dei risultati
+Generative AI	Faithfulness	Aderenza delle risposte alle fonti
+Generative AI	Answer Relevance	Pertinenza della risposta alla domanda
+Generative AI	Context Precision	Qualità del contesto recuperato
+Generative AI	Context Recall	Completezza del contesto recuperato
+Generative AI	Hallucination Rate	Frequenza delle allucinazioni
+Performance	P50	50° percentile
+Performance	P95	95° percentile
+Performance	P99	99° percentile
+Performance	TTFT	Tempo di generazione del primo token
+Performance	Throughput	Capacità di elaborazione per unità di tempo
+Performance	Cost per Query	Costo per interrogazione
